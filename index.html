@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>วัดเด่น สุพรรณบุรี — แยกตามอำเภอ</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&family=Noto+Serif+Thai:wght@500;700&display=swap" rel="stylesheet" />
+
+<style>
+:root{
+  --bg:#faf9f6; --ink:#222; --muted:#666;
+  --gold:#d6a64b; --brick:#7b2c20; --card:#fff;
+  --shadow:0 6px 20px rgba(0,0,0,.08); --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0; color:var(--ink); background:var(--bg);
+  font-family:"Kanit",system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.6;}
+
+header{
+  padding:22px 16px; text-align:center; color:#fff;
+  background:linear-gradient(135deg, rgba(123,44,32,.95), rgba(214,166,75,.95));
+  box-shadow:var(--shadow);
+}
+header h1{margin:0 0 6px; font:700 26px/1.25 "Noto Serif Thai",serif}
+header p{margin:0; opacity:.95}
+
+/* layout */
+.container{max-width:1200px; margin:auto; padding:18px; display:grid; grid-template-columns:320px 1fr; gap:18px}
+@media (max-width:880px){ .container{grid-template-columns:1fr} }
+
+/* LEFT: district selector + temples list */
+.panel{
+  background:var(--card); border:1px solid rgba(214,166,75,.25);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:14px;
+}
+.panel h2{margin:4px 0 10px; font:700 20px/1.3 "Noto Serif Thai",serif; color:var(--brick)}
+
+/* search (district only) */
+.search{width:100%; padding:10px 12px; border:1px solid #e5e5e5; border-radius:10px; margin:6px 0 10px}
+
+/* district chips */
+.districts{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px}
+.districts button{
+  border:1px solid #eee; padding:8px 12px; border-radius:999px; background:#fff; cursor:pointer;
+}
+.districts button.active{background:linear-gradient(135deg, var(--brick), var(--gold)); color:#fff; border-color:transparent}
+.note{font-size:13px; color:var(--muted); margin:6px 0 10px}
+
+/* temples list (no search) */
+.list{list-style:none; padding:0; margin:0}
+.list li{margin:4px 0}
+.list a{display:block; padding:10px 12px; border-radius:12px; text-decoration:none; color:var(--ink);
+  border:1px solid #eee; background:#fff;}
+.list a:hover{background:#fff7ea; border-color:#f1d18a}
+.list a.active{background:linear-gradient(135deg, var(--brick), var(--gold)); color:#fff; border-color:transparent}
+
+/* RIGHT: content */
+.detail{
+  background:var(--card); border:1px solid rgba(214,166,75,.25);
+  border-radius:var(--radius); box-shadow:var(--shadow); padding:18px;
+}
+.temple{display:none}
+.temple.active{display:block}
+.temple h2{margin:4px 0 12px; color:var(--brick); font:700 22px/1.3 "Noto Serif Thai",serif; display:flex; align-items:center; gap:10px}
+.temple h2:before{content:"\2726"; color:var(--gold); font-size:18px}
+
+.gallery{display:grid; gap:14px; grid-template-columns:repeat(2,minmax(0,1fr)); margin:10px 0 6px}
+.tile{border-radius:16px; overflow:hidden; box-shadow:0 10px 26px rgba(0,0,0,.10); aspect-ratio:16/10}
+.tile img{width:100%; height:100%; object-fit:cover; display:block}
+
+.info h3{margin:14px 0 6px; color:#333; font-weight:700; border-left:4px solid var(--gold); padding-left:10px}
+.info p{margin:6px 0 10px; color:#444}
+.muted{color:var(--muted)}
+.btn{
+  display:inline-block; padding:10px 16px; border-radius:999px;
+  background:linear-gradient(135deg, var(--brick), var(--gold));
+  color:#fff; text-decoration:none; font-weight:600; letter-spacing:.2px;
+  box-shadow:0 6px 16px rgba(123,44,32,.25);
+}
+.empty{padding:16px; background:#fff7ea; border:1px dashed #f1d18a; border-radius:12px; color:#6b4a1f}
+@media (max-width:640px){ .gallery{grid-template-columns:1fr} }
+</style>
+</head>
+
+<body>
+<header>
+  <h1>วัดเด่น สุพรรณบุรี — แยกตามอำเภอ</h1>
+  <p>ค้นหา “อำเภอ” ทางซ้าย แล้วเลือกวัดเพื่อดูรายละเอียด (ข้อมูลครบไม่หาย)</p>
+</header>
+
+<div class="container">
+
+  <aside class="panel">
+    <h2>เลือกอำเภอ</h2>
+    <input id="q" class="search" placeholder="พิมพ์ค้นหา: เมือง / ด่านช้าง / เดิมบางนางบวช / ศรีประจันต์" />
+
+    <div id="districtChips" class="districts">
+      <button data-district="เมือง">อำเภอเมืองสุพรรณบุรี</button>
+      <button data-district="ด่านช้าง">อำเภอด่านช้าง</button>
+      <button data-district="เดิมบางนางบวช" class="active">อำเภอเดิมบางนางบวช</button>
+      <button data-district="ศรีประจันต์">อำเภอศรีประจันต์</button>
+    </div>
+    <p class="note">ค้นหาจะกรองเฉพาะ “อำเภอ” ด้านบนเท่านั้น</p>
+
+    <h2 id="listTitle">วัดในอำเภอเดิมบางนางบวช</h2>
+    <ul id="templeList" class="list"><!-- will be filled by JS --></ul>
+  </aside>
+
+  <main class="detail">
+
+    <!-- ===================== อำเภอเมืองสุพรรณบุรี: เพิ่มใหม่ครบ 10 วัด ===================== -->
+    <section id="m-วัดอุทุมพราราม" class="temple">
+      <h2>วัดอุทุมพราราม (วัดไผ่แขก)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ไผ่1.jpg" alt="วัดไผ่แขก 1"></figure>
+        <figure class="tile"><img src="ไผ่2.jpg" alt="วัดไผ่แขก 2"></figure>
+        <figure class="tile"><img src="ไผ่3.jpg" alt="วัดไผ่แขก 3"></figure>
+        <figure class="tile"><img src="ไผ่4.jpg" alt="วัดไผ่แขก 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ธูปเทียน ผ้ายันต์ เหรียญหลวงพ่อ</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดดังของเมืองสุพรรณ มีงานบุญคึกคักตลอดปี</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลาการเปรียญกว้าง เครื่องสักการะครบ</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อองค์ใหญ่ ขอพรการงาน–ค้าขาย</p>
+        <h3>ของฝาก</h3><p>พระเครื่องวัดไผ่แขก น้ำพระพุทธมนต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดไผ่แขก สุพรรณบุรี">ดูแผนที่ วัดไผ่แขก</a>
+      </div>
+    </section>
+
+    <section id="m-วัดป่าเลไลยก์วรวิหาร" class="temple">
+      <h2>วัดป่าเลไลยก์วรวิหาร</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เลไล1.jpg" alt="วัดป่าเลไลยก์วรวิหาร 1"></figure>
+        <figure class="tile"><img src="เลไล2.jpg" alt="วัดป่าเลไลยก์วรวิหาร 2"></figure>
+        <figure class="tile"><img src="เลไล-.jpg" alt="วัดป่าเลไลยก์วรวิหาร 3"></figure>
+        <figure class="tile"><img src="เลไล4.jpg" alt="วัดป่าเลไลยก์วรวิหาร 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน เหรียญหลวงพ่อโต</p>
+        <h3>เกี่ยวกับอะไร</h3><p>พระอารามหลวง สำคัญคู่เมืองสุพรรณ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>หลวงพ่อโตองค์ใหญ่ โบสถ์งดงาม</p>
+        <h3>มาไหว้พระอะไร</h3><p>ขอพรชีวิตร่มเย็น เจริญก้าวหน้า</p>
+        <h3>ของฝาก</h3><p>เหรียญ/ล็อกเก็ตหลวงพ่อโต</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดป่าเลไลยก์วรวิหาร สุพรรณบุรี">ดูแผนที่ วัดป่าเลไลยก์</a>
+      </div>
+    </section>
+
+    <section id="m-วัดสารภี" class="temple">
+      <h2>วัดสารภี</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ม่วง1.jpg" alt="วัดสารภี 1"></figure>
+        <figure class="tile"><img src="ม่วง2.jpg" alt="วัดสารภี 2"></figure>
+        <figure class="tile"><img src="ม่วง3.jpg" alt="วัดสารภี 3"></figure>
+        <figure class="tile"><img src="ม่วง4.jpg" alt="วัดสารภี 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน สายสิญจน์ ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนเก่าแก่ ใจกลางเมือง</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบสงบ ร่มเงาไม้ใหญ่</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ ขอพรสุขสงบ</p>
+        <h3>ของฝาก</h3><p>ผ้ายันต์–ลูกประคำ</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดสารภี สุพรรณบุรี">ดูแผนที่ วัดสารภี</a>
+      </div>
+    </section>
+
+    <section id="m-วัดวรจันทร์" class="temple">
+      <h2>วัดวรจันทร์</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="จัน1.jpg" alt="วัดวรจันทร์ 1"></figure>
+        <figure class="tile"><img src="จัน2.jpg" alt="วัดวรจันทร์ 2"></figure>
+        <figure class="tile"><img src="จัน3.jpg" alt="วัดวรจันทร์ 3"></figure>
+        <figure class="tile"><img src="จัน4.jpg" alt="วัดวรจันทร์ 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ธูปเทียน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดราษฎร์ย่านเมืองเก่า ใช้จัดพิธีงานบุญ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>อาคารไม้เก่าแก่ บรรยากาศคลาสสิก</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรครอบครัวร่มเย็น</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดวรจันทร์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดวรจันทร์ สุพรรณบุรี">ดูแผนที่ วัดวรจันทร์</a>
+      </div>
+    </section>
+
+    <section id="m-วัดพระลอย" class="temple">
+      <h2>วัดพระลอย</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ลอย1.jpg" alt="วัดพระลอย 1"></figure>
+        <figure class="tile"><img src="ลอย2.jpg" alt="วัดพระลอย 2"></figure>
+        <figure class="tile"><img src="ลอย3.jpg" alt="วัดพระลอย 3"></figure>
+        <figure class="tile"><img src="ลอย4.jpg" alt="วัดพระลอย 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>สายสิญจน์ น้ำมนต์ พระผง</p>
+        <h3>เกี่ยวกับอะไร</h3><p>ตำนานพระลอย สำคัญทางประวัติศาสตร์เมืองสุพรรณ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>โบราณสถาน–โบราณวัตถุหลายจุด</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระลอย ขอพรเมตตามหานิยม</p>
+        <h3>ของฝาก</h3><p>เหรียญที่ระลึกวัดพระลอย</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพระลอย สุพรรณบุรี">ดูแผนที่ วัดพระลอย</a>
+      </div>
+    </section>
+
+    <section id="m-วัดพระรูป" class="temple">
+      <h2>วัดพระรูป</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="รูป1.jpg" alt="วัดพระรูป 1"></figure>
+        <figure class="tile"><img src="รูป2.jpg" alt="วัดพระรูป 2"></figure>
+        <figure class="tile"><img src="รูป3.jpg" alt="วัดพระรูป 3"></figure>
+        <figure class="tile"><img src="รูป4.jpg" alt="วัดพระรูป 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดสำคัญในตัวเมือง มีงานบุญประจำ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>โบสถ์สวย สถาปัตยกรรมเด่น</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อพระรูป ขอพรชีวิตราบรื่น</p>
+        <h3>ของฝาก</h3><p>ล็อกเก็ต–เหรียญหลวงพ่อ</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพระรูป สุพรรณบุรี">ดูแผนที่ วัดพระรูป</a>
+      </div>
+    </section>
+
+    <section id="m-วัดพระศรีรัตนมหาธาตุ" class="temple">
+      <h2>วัดพระศรีรัตนมหาธาตุ</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ศรี.jpg" alt="วัดพระศรีรัตนมหาธาตุ 1"></figure>
+        <figure class="tile"><img src="ศรี1.jpg" alt="วัดพระศรีรัตนมหาธาตุ 2"></figure>
+        <figure class="tile"><img src="ศรี2.jpg" alt="วัดพระศรีรัตนมหาธาตุ 3"></figure>
+        <figure class="tile"><img src="ศรี3.jpg" alt="วัดพระศรีรัตนมหาธาตุ 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>พระผง ผ้ายันต์ ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>โบราณสถานสำคัญ เจดีย์มหาธาตุ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>งานสถาปัตยกรรมเก่าแก่ น่าเรียนรู้ประวัติศาสตร์</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธาน ขอพรแคล้วคลาด</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดมหาธาตุ</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพระศรีรัตนมหาธาตุ สุพรรณบุรี">ดูแผนที่ วัดพระศรีรัตนมหาธาตุ</a>
+      </div>
+    </section>
+
+    <section id="m-วัดแค" class="temple">
+      <h2>วัดแค</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="แค1.jpg" alt="วัดแค 1"></figure>
+        <figure class="tile"><img src="แค2.jpg" alt="วัดแค 2"></figure>
+        <figure class="tile"><img src="แค3.jpg" alt="วัดแค 3"></figure>
+        <figure class="tile"><img src="แค4.jpg" alt="วัดแค 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดราษฎร์ในตัวเมือง บรรยากาศเรียบง่าย</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ลานวัดกว้าง ร่มรื่น</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ</p>
+        <h3>ของฝาก</h3><p>น้ำมนต์–สายสิญจน์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดแค สุพรรณบุรี">ดูแผนที่ วัดแค</a>
+      </div>
+    </section>
+
+    <section id="m-วัดพระนอน" class="temple">
+      <h2>วัดพระนอน</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="นอน1.jpg" alt="วัดพระนอน 1"></figure>
+        <figure class="tile"><img src="นอน2.jpg" alt="วัดพระนอน 2"></figure>
+        <figure class="tile"><img src="นอน3.jpg" alt="วัดพระนอน 3"></figure>
+        <figure class="tile"><img src="นอน4.jpg" alt="วัดพระนอน 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>มีพระพุทธไสยาสน์เป็นประธาน</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>องค์พระนอนงดงาม บรรยากาศสงบ</p>
+        <h3>มาไหว้พระอะไร</h3><p>ขอพรสุขภาพดี หลับสบาย จิตใจผ่อนคลาย</p>
+        <h3>ของฝาก</h3><p>เหรียญที่ระลึกวัดพระนอน</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพระนอน สุพรรณบุรี">ดูแผนที่ วัดพระนอน</a>
+      </div>
+    </section>
+
+    <section id="m-วัดพิหารแดง" class="temple">
+      <h2>วัดพิหารแดง</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="แดง1.jpg" alt="วัดพิหารแดง 1"></figure>
+        <figure class="tile"><img src="แดง2.jpg" alt="วัดพิหารแดง 2"></figure>
+        <figure class="tile"><img src="แดง3.jpg" alt="วัดพิหารแดง 3"></figure>
+        <figure class="tile"><img src="แดง4.jpg" alt="วัดพิหารแดง 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ผ้าไตร</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดประจำชุมชนเมืองสุพรรณ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลากว้าง พื้นที่รองรับงานบุญ</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธาน ขอพรความมั่นคง ปลอดภัย</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดพิหารแดง</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพิหารแดง สุพรรณบุรี">ดูแผนที่ วัดพิหารแดง</a>
+      </div>
+    </section>
+
+    <!-- ===================== ด่านช้าง (เดิมมีอยู่) ===================== -->
+    <section id="t-เขาพระศรี" class="temple"><h2>วัดเขาพระศรี</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เขาพระ1.jpg" alt="วัดเขาพระศรี 1"></figure>
+        <figure class="tile"><img src="เขาพระ2.jpg" alt="วัดเขาพระศรี 2"></figure>
+        <figure class="tile"><img src="เขาพระ3.jpg" alt="วัดเขาพระศรี 3"></figure>
+        <figure class="tile"><img src="เขาพระ4.jpg" alt="วัดเขาพระศรี 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>สายสิญจน์ น้ำพระพุทธมนต์ พระผง และของฝากชุมชน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดอยู่บนเนินเขา เห็นวิวอ่างเก็บน้ำและแนวป่า เหมาะกับการภาวนา</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>จุดชมพระอาทิตย์ขึ้น–ตก ลมเย็นทั้งปี บรรยากาศสงบ</p>
+        <h3>มาไหว้พระอะไร</h3><p>ขอพรให้ใจสงบ เดินทางปลอดภัย ครอบครัวร่มเย็น</p>
+        <h3>ของฝาก</h3><p>พระผง เหรียญวัดเขาพระศรี ผ้ายันต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">ทุกวัน 08.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาพระศรี ด่านช้าง">ดูแผนที่ วัดเขาพระศรี</a>
+      </div>
+    </section>
+
+    <section id="t-ทุ่งนาตาปิ่น" class="temple"><h2>วัดทุ่งนาตาปิ่น</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ทุ่งนาตาปิ่น1.jpg" alt="วัดทุ่งนาตาปิ่น 1"></figure>
+        <figure class="tile"><img src="ทุ่งนาตาปิ่น2.jpg" alt="วัดทุ่งนาตาปิ่น 2"></figure>
+        <figure class="tile"><img src="ทุ่งนาตาปิ่น3.jpg" alt="วัดทุ่งนาตาปิ่น 3"></figure>
+        <figure class="tile"><img src="ทุ่งนาตาปิ่น4.jpg" alt="วัดทุ่งนาตาปิ่น 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ดอกไม้บูชา น้ำมนต์</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนกลางทุ่ง เงียบสงบ เรียบง่าย</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ลมพัดตลอดวัน โปร่งโล่งสบาย</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานองค์เล็ก อ่อนโยน</p>
+        <h3>ของฝาก</h3><p>สายสิญจน์และพวงมาลัยสด</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดทุ่งนาตาปิ่น ด่านช้าง">ดูแผนที่ วัดทุ่งนาตาปิ่น</a>
+      </div>
+    </section>
+    <section id="t-เขาดิน" class="temple">
+  <h2>วัดเขาดิน</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="เขาดิน1.jpg"></figure>
+    <figure class="tile"><img src="เขาดิน2.jpg"></figure>
+    <figure class="tile"><img src="เขาดิน3.jpg"></figure>
+    <figure class="tile"><img src="เขาดิน4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>ผ้าไตร สังฆทาน ธูปเทียน</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนใกล้ภูเขา มีงานบุญประจำ</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>เงียบสงบ ใกล้ธรรมชาติ</p>
+    <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อประธาน</p>
+    <h3>ของฝาก</h3><p>ผ้ายันต์ สายสิญจน์</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาดิน ด่านช้าง">ดูแผนที่ วัดเขาดิน</a>
+  </div>
+</section>
+
+<section id="t-โป่งคอม" class="temple">
+  <h2>วัดโป่งคอม</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="โป่งคอม1.jpg"></figure>
+    <figure class="tile"><img src="โป่งคอม2.jpg"></figure>
+    <figure class="tile"><img src="โป่งคอม3.jpg"></figure>
+    <figure class="tile"><img src="โป่งคอม4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดทำบุญ</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนเก่าแก่</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>บ้านๆ เป็นกันเอง</p>
+    <h3>มาไหว้พระอะไร</h3><p>ขอพรเรื่องครอบครัวสงบสุข</p>
+    <h3>ของฝาก</h3><p>สายสิญจน์</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดโป่งคอม ด่านช้าง">ดูแผนที่ วัดโป่งคอม</a>
+  </div>
+</section>
+
+<section id="t-ด่านช้าง" class="temple">
+  <h2>วัดด่านช้าง</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="ด่านช้าง1.jpg"></figure>
+    <figure class="tile"><img src="ด่านช้าง2.jpg"></figure>
+    <figure class="tile"><img src="ด่านช้าง3.jpg"></figure>
+    <figure class="tile"><img src="ด่านช้าง4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้ ของชุมชน</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดประจำอำเภอ</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>ศาลาใหญ่ รองรับงานบุญ</p>
+    <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่</p>
+    <h3>ของฝาก</h3><p>เหรียญวัดด่านช้าง</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดด่านช้าง สุพรรณบุรี">ดูแผนที่ วัดด่านช้าง</a>
+  </div>
+</section>
+
+<section id="t-บรรหารแจ่มใส" class="temple">
+  <h2>วัดบรรหารแจ่มใส</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="บรรหารแจ่มใส1.jpg"></figure>
+    <figure class="tile"><img src="บรรหารแจ่มใส2.jpg"></figure>
+    <figure class="tile"><img src="บรรหารแจ่มใส3.jpg"></figure>
+    <figure class="tile"><img src="บรรหารแจ่มใส4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>พระเครื่อง ผ้ายันต์ สังฆทาน</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดใหญ่ประจำชุมชน</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>ลานกว้าง มีงานบุญตลอดปี</p>
+    <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อในโบสถ์</p>
+    <h3>ของฝาก</h3><p>วัตถุมงคล</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดบรรหารแจ่มใส ด่านช้าง">ดูแผนที่ วัดบรรหารแจ่มใส</a>
+  </div>
+</section>
+
+<section id="t-ดอนประดู่" class="temple">
+  <h2>วัดดอนประดู่</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="ดอนประดู่1.jpg"></figure>
+    <figure class="tile"><img src="ดอนประดู่2.jpg"></figure>
+    <figure class="tile"><img src="ดอนประดู่3.jpg"></figure>
+    <figure class="tile"><img src="ดอนประดู่4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>ผ้ายันต์ พระผง</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดร่มรื่นกลางชุมชน</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>บรรยากาศเรียบง่าย สงบ</p>
+    <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อในโบสถ์</p>
+    <h3>ของฝาก</h3><p>พระผง–สายสิญจน์</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดดอนประดู่ ด่านช้าง">ดูแผนที่ วัดดอนประดู่</a>
+  </div>
+</section>
+
+<section id="t-ชลประชาเทพนิมิตร" class="temple">
+  <h2>วัดชลประชาเทพนิมิตร</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="ชลประชา1.jpg"></figure>
+    <figure class="tile"><img src="ชลประชา2.jpg"></figure>
+    <figure class="tile"><img src="ชลประชา3.jpg"></figure>
+    <figure class="tile"><img src="ชลประชา4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>น้ำมนต์ ธูปเทียน</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนเก่าแก่</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>สงบ เหมาะนั่งสมาธิ</p>
+    <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อองค์ใหญ่</p>
+    <h3>ของฝาก</h3><p>ผ้ายันต์</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดชลประชาเทพนิมิตร ด่านช้าง">ดูแผนที่ วัดชลประชาเทพนิมิตร</a>
+  </div>
+</section>
+
+<section id="t-พุน้ำร้อน" class="temple">
+  <h2>วัดพุน้ำร้อน</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="พุน้ำร้อน1.jpg"></figure>
+    <figure class="tile"><img src="พุน้ำร้อน2.jpg"></figure>
+    <figure class="tile"><img src="พุน้ำร้อน3.jpg"></figure>
+    <figure class="tile"><img src="พุน้ำร้อน4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>พระเครื่อง น้ำมนต์</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดใกล้น้ำพุร้อน</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>วิวธรรมชาติเยอะ อากาศดี</p>
+    <h3>มาไหว้พระอะไร</h3><p>พระประธานปางมารวิชัย</p>
+    <h3>ของฝาก</h3><p>น้ำมนต์–ผ้ายันต์</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดพุน้ำร้อน ด่านช้าง">ดูแผนที่ วัดพุน้ำร้อน</a>
+  </div>
+</section>
+
+<section id="t-วังคัน" class="temple">
+  <h2>วัดวังคัน</h2>
+  <div class="gallery">
+    <figure class="tile"><img src="วังคัน1.jpg"></figure>
+    <figure class="tile"><img src="วังคัน2.jpg"></figure>
+    <figure class="tile"><img src="วังคัน3.jpg"></figure>
+    <figure class="tile"><img src="วังคัน4.jpg"></figure>
+  </div>
+  <div class="info">
+    <h3>ขายของอะไรบ้าง</h3><p>สายสิญจน์ น้ำมนต์</p>
+    <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนริมอ่างเก็บน้ำ</p>
+    <h3>จุดเด่นของวัดนี้</h3><p>วิวสวย อากาศดีมาก</p>
+    <h3>มาไหว้พระอะไร</h3><p>ขอพรความร่มเย็นและชีวิตมั่นคง</p>
+    <h3>ของฝาก</h3><p>ผ้ายันต์วังคัน</p>
+    <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+    <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดวังคัน ด่านช้าง">ดูแผนที่ วัดวังคัน</a>
+  </div>
+</section>
+
+    <!-- ===================== เดิมบางนางบวช (เดิมมีอยู่) ===================== -->
+    <section id="dmb-วัดเดิมบาง" class="temple">
+      <h2>วัดเดิมบาง</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เดิมบาง1.jpg" alt="วัดเดิมบาง 1"></figure>
+        <figure class="tile"><img src="เดิมบาง2.jpg" alt="วัดเดิมบาง 2"></figure>
+        <figure class="tile"><img src="เดิมบาง3.jpg" alt="วัดเดิมบาง 3"></figure>
+        <figure class="tile"><img src="เดิมบาง4.jpg" alt="วัดเดิมบาง 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ธูปเทียน ผ้าไตร ของชุมชนตำบลเดิมบาง</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดราษฎร์คู่ชุมชนเดิมบาง ใช้จัดงานบุญประจำปีและพิธีทางศาสนา</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>บรรยากาศเรียบง่าย ร่มรื่น เหมาะนั่งสมาธิ</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อประธาน ขอพรชีวิตราบรื่น</p>
+        <h3>ของฝาก</h3><p>พระเครื่อง เหรียญที่ระลึกวัดเดิมบาง</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเดิมบาง อำเภอเดิมบางนางบวช">ดูแผนที่ วัดเดิมบาง</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดเขาดิน" class="temple">
+      <h2>วัดเขาดิน (ตำบลเขาดิน)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เขาดิน-เดิมบาง1.jpg" alt="วัดเขาดิน เดิมบางนางบวช 1"></figure>
+        <figure class="tile"><img src="เขาดิน-เดิมบาง2.jpg" alt="วัดเขาดิน เดิมบางนางบวช 2"></figure>
+        <figure class="tile"><img src="เขาดิน-เดิมบาง3.jpg" alt="วัดเขาดิน เดิมบางนางบวช 3"></figure>
+        <figure class="tile"><img src="เขาดิน-เดิมบาง4.jpg" alt="วัดเขาดิน เดิมบางนางบวช 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน น้ำมนต์ สายสิญจน์</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนเชิงเขาในตำบลเขาดิน เป็นที่พึ่งทางใจของชาวบ้าน</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบสงบ ใกล้ธรรมชาติ</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อในอุโบสถเก่า ขอพรครอบครัวร่มเย็น</p>
+        <h3>ของฝาก</h3><p>ผ้ายันต์ สายสิญจน์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาดิน เดิมบางนางบวช">ดูแผนที่ วัดเขาดิน</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดกาบบัว" class="temple">
+      <h2>วัดกาบบัว (ตำบลเขาดิน)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="กาบบัว1.jpg" alt="วัดกาบบัว 1"></figure>
+        <figure class="tile"><img src="กาบบัว2.jpg" alt="วัดกาบบัว 2"></figure>
+        <figure class="tile"><img src="กาบบัว3.jpg" alt="วัดกาบบัว 3"></figure>
+        <figure class="tile"><img src="กาบบัว4.jpg" alt="วัดกาบบัว 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน ของชุมชน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดเก่าแก่ในละแวกชนบท เชื่อมโยงวิถีชุมชนอย่างใกล้ชิด</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ร่มรื่น สงบ</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ เสริมสิริมงคล</p>
+        <h3>ของฝาก</h3><p>ลูกประคำ ผ้ายันต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดกาบบัว เดิมบางนางบวช">ดูแผนที่ วัดกาบบัว</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดปากดงท่าศาล" class="temple">
+      <h2>วัดปากดงท่าศาล (ตำบลเขาดิน)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ปากดงท่าศาล1.jpg" alt="วัดปากดงท่าศาล 1"></figure>
+        <figure class="tile"><img src="ปากดงท่าศาล2.jpg" alt="วัดปากดงท่าศาล 2"></figure>
+        <figure class="tile"><img src="ปากดงท่าศาล3.jpg" alt="วัดปากดงท่าศาล 3"></figure>
+        <figure class="tile"><img src="ปากดงท่าศาล4.jpg" alt="วัดปากดงท่าศาล 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ดอกไม้ พวงมาลัย</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดริมทางชุมชน ใช้ประกอบพิธีสำคัญของหมู่บ้าน</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลาโปร่ง ลมดี</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรการงานก้าวหน้า</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดปากดงท่าศาล</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดปากดงท่าศาล เดิมบางนางบวช">ดูแผนที่ วัดปากดงท่าศาล</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดหนองแขม" class="temple">
+      <h2>วัดหนองแขม (ตำบลเขาดิน)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="หนองแขม1.jpg" alt="วัดหนองแขม 1"></figure>
+        <figure class="tile"><img src="หนองแขม2.jpg" alt="วัดหนองแขม 2"></figure>
+        <figure class="tile"><img src="หนองแขม3.jpg" alt="วัดหนองแขม 3"></figure>
+        <figure class="tile"><img src="หนองแขม4.jpg" alt="วัดหนองแขม 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ธูปเทียน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดประจำชุมชน หนุนเสริมกิจกรรมทำบุญ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>บรรยากาศบ้าน ๆ เป็นกันเอง</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อประธาน ขอพรครอบครัวสงบสุข</p>
+        <h3>ของฝาก</h3><p>สายสิญจน์ น้ำมนต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดหนองแขม เดิมบางนางบวช">ดูแผนที่ วัดหนองแขม</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดเขาพระ" class="temple">
+      <h2>วัดเขาพระ (ตำบลเขาพระ)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เขาพระ-เดิมบาง1.jpg" alt="วัดเขาพระ เดิมบางนางบวช 1"></figure>
+        <figure class="tile"><img src="เขาพระ-เดิมบาง2.jpg" alt="วัดเขาพระ เดิมบางนางบวช 2"></figure>
+        <figure class="tile"><img src="เขาพระ-เดิมบาง3.jpg" alt="วัดเขาพระ เดิมบางนางบวช 3"></figure>
+        <figure class="tile"><img src="เขาพระ-เดิมบาง4.jpg" alt="วัดเขาพระ เดิมบางนางบวช 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ผ้าไตร สายสิญจน์</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดเชิงเขาเป็นที่พึ่งทางใจของชาวตำบลเขาพระ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>วิวเนินเขา สงบลึก</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรแคล้วคลาด ปลอดภัย</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดเขาพระ</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาพระ เดิมบางนางบวช">ดูแผนที่ วัดเขาพระ</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดเขาน้อย" class="temple">
+      <h2>วัดเขาน้อย </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เขาน้อย-เดิมบาง1.jpg" alt="วัดเขาน้อย เดิมบางนางบวช 1"></figure>
+        <figure class="tile"><img src="เขาน้อย-เดิมบาง2.jpg" alt="วัดเขาน้อย เดิมบางนางบวช 2"></figure>
+        <figure class="tile"><img src="เขาน้อย-เดิมบาง3.jpg" alt="วัดเขาน้อย เดิมบางนางบวช 3"></figure>
+        <figure class="tile"><img src="เขาน้อย-เดิมบาง4.jpg" alt="วัดเขาน้อย เดิมบางนางบวช 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดเล็ก ๆ บนเนินเขา บรรยากาศเรียบง่าย</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบ เหมาะภาวนา</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางมารวิชัย เสริมพลังใจ</p>
+        <h3>ของฝาก</h3><p>ลูกประคำ ผ้ายันต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาน้อย เดิมบางนางบวช">ดูแผนที่ วัดเขาน้อย</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดเขาใหญ่" class="temple">
+      <h2>วัดเขาใหญ่ </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="เขาใหญ่-เดิมบาง1.jpg" alt="วัดเขาใหญ่ เดิมบางนางบวช 1"></figure>
+        <figure class="tile"><img src="เขาใหญ่-เดิมบาง2.jpg" alt="วัดเขาใหญ่ เดิมบางนางบวช 2"></figure>
+        <figure class="tile"><img src="เขาใหญ่-เดิมบาง3.jpg" alt="วัดเขาใหญ่ เดิมบางนางบวช 3"></figure>
+        <figure class="tile"><img src="เขาใหญ่-เดิมบาง4.jpg" alt="วัดเขาใหญ่ เดิมบางนางบวช 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน น้ำมนต์</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดเชิงเขา มีงานบุญชุมชนสม่ำเสมอ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>อากาศดี เงียบสงบ</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อในอุโบสถ ขอพรความมั่นคง</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดเขาใหญ่</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดเขาใหญ่ เดิมบางนางบวช">ดูแผนที่ วัดเขาใหญ่</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดท่าช้าง" class="temple">
+      <h2>วัดท่าช้าง </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ท่าช้าง-เดิมบาง1.jpg" alt="วัดท่าช้าง เดิมบางนางบวช 1"></figure>
+        <figure class="tile"><img src="ท่าช้าง-เดิมบาง2.jpg" alt="วัดท่าช้าง เดิมบางนางบวช 2"></figure>
+        <figure class="tile"><img src="ท่าช้าง-เดิมบาง3.jpg" alt="วัดท่าช้าง เดิมบางนางบวช 3"></figure>
+        <figure class="tile"><img src="ท่าช้าง-เดิมบาง4.jpg" alt="วัดท่าช้าง เดิมบางนางบวช 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดริมน้ำ ใช้ประกอบพิธีทอดกฐินผ้าป่าคึกคัก</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลาริมน้ำ ลมเย็น</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อโต ขอพรค้าขายรุ่งเรือง</p>
+        <h3>ของฝาก</h3><p>พวงมาลัยสด แนมผลไม้ท้องถิ่น</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดท่าช้าง เดิมบางนางบวช">ดูแผนที่ วัดท่าช้าง</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดวังกุลา" class="temple">
+      <h2>วัดวังกุลา </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="วังกุลา1.jpg" alt="วัดวังกุลา 1"></figure>
+        <figure class="tile"><img src="วังกุลา2.jpg" alt="วัดวังกุลา 2"></figure>
+        <figure class="tile"><img src="วังกุลา3.jpg" alt="วัดวังกุลา 3"></figure>
+        <figure class="tile"><img src="วังกุลา4.jpg" alt="วัดวังกุลา 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ผ้าไตร</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดกลางชุมชนตำบลเขาพระ จัดกิจกรรมทำบุญต่อเนื่อง</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ลานกว้าง รองรับงานบุญ</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ ขอพรสุขสงบ</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดวังกุลา</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–18.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดวังกุลา เดิมบางนางบวช">ดูแผนที่ วัดวังกุลา</a>
+      </div>
+    </section>
+
+    <section id="dmb-วัดสามเอก" class="temple">
+      <h2>วัดสามเอก</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="สามเอก1.jpg" alt="วัดสามเอก 1"></figure>
+        <figure class="tile"><img src="สามเอก2.jpg" alt="วัดสามเอก 2"></figure>
+        <figure class="tile"><img src="สามเอก3.jpg" alt="วัดสามเอก 3"></figure>
+        <figure class="tile"><img src="สามเอก4.jpg" alt="วัดสามเอก 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดคู่ชุมชนโคกช้าง เป็นศูนย์รวมกิจกรรมทางศาสนา</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบ ร่มรื่น</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อประธาน ขอพรชีวิตมั่นคง</p>
+        <h3>ของฝาก</h3><p>สายสิญจน์ ผ้ายันต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดสามเอก เดิมบางนางบวช">ดูแผนที่ วัดสามเอก</a>
+      </div>
+    </section>
+
+    
+    <section id="srp-วัดบ้านกร่าง" class="temple">
+      <h2>วัดบ้านกร่าง </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="กราง1.jpg" alt="วัดบ้านกร่าง 1"></figure>
+        <figure class="tile"><img src="กราง2.jpg" alt="วัดบ้านกร่าง 2"></figure>
+        <figure class="tile"><img src="กราง3.jpg" alt="วัดบ้านกร่าง 3"></figure>
+        <figure class="tile"><img src="กราง4.jpg" alt="วัดบ้านกร่าง 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>พระเครื่องบ้านกร่าง ผ้ายันต์ ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดดังด้านพระเครื่องและประวัติศาสตร์ท้องถิ่น</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ชื่อเสียง “พระผงบ้านกร่าง” ของสุพรรณ</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อในอุโบสถ ขอพรเมตตามหานิยม</p>
+        <h3>ของฝาก</h3><p>เหรียญ–ล็อกเก็ตวัดบ้านกร่าง</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">08.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดบ้านกร่าง ศรีประจันต์">ดูแผนที่ วัดบ้านกร่าง</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดโพธิ์ศรีเจริญ" class="temple">
+      <h2>วัดโพธิ์ศรีเจริญ </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="โพธิ์1.jpg" alt="วัดโพธิ์ศรีเจริญ 1"></figure>
+        <figure class="tile"><img src="โพธิ์2.jpg" alt="วัดโพธิ์ศรีเจริญ 2"></figure>
+        <figure class="tile"><img src="โพธิ์3.jpg" alt="วัดโพธิ์ศรีเจริญ 3"></figure>
+        <figure class="tile"><img src="โพธิ์4.jpg" alt="วัดโพธิ์ศรีเจริญ 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดร่มรื่นของชุมชนบ้านกร่าง</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลากว้าง รองรับงานบุญ</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ</p>
+        <h3>ของฝาก</h3><p>ผ้ายันต์บ้านกร่าง</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดโพธิ์ศรีเจริญ ศรีประจันต์">ดูแผนที่ วัดโพธิ์ศรีเจริญ</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดดอนบุบผาราม" class="temple">
+      <h2>วัดดอนบุบผาราม </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ดอน1.jpg" alt="วัดดอนบุบผาราม 1"></figure>
+        <figure class="tile"><img src="ดอน2.jpg" alt="วัดดอนบุบผาราม 2"></figure>
+        <figure class="tile"><img src="ดอน3.jpg" alt="วัดดอนบุบผาราม 3"></figure>
+        <figure class="tile"><img src="ดอน4.jpg" alt="วัดดอนบุบผาราม 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน สายสิญจน์ ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดคู่ชุมชนบ้านกร่าง ใช้ทำบุญงานเทศกาล</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ลมเย็น ร่มไม้มาก</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรชีวิตมั่นคง</p>
+        <h3>ของฝาก</h3><p>สายสิญจน์/น้ำมนต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดดอนบุบผาราม ศรีประจันต์">ดูแผนที่ วัดดอนบุบผาราม</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดบ้านกล้วย" class="temple">
+      <h2>วัดบ้านกล้วย </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="บ้าน1.jpg" alt="วัดบ้านกล้วย 1"></figure>
+        <figure class="tile"><img src="บ้าน2.jpg" alt="วัดบ้านกล้วย 2"></figure>
+        <figure class="tile"><img src="บ้าน3.jpg" alt="วัดบ้านกล้วย 3"></figure>
+        <figure class="tile"><img src="บ้าน4.jpg" alt="วัดบ้านกล้วย 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ผ้าไตร ของชุมชน</p>
+        <h3>เกี่ยวกับอะไร</hอ><p>วัดประจำตำบลบ้านกร่าง</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลากว้าง รองรับงานบุญ</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ</p>
+        <h3>ของฝาก</h3><p>ขนมท้องถิ่น–กล้วยฉาบ</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดบ้านกล้วย ศรีประจันต์">ดูแผนที่ วัดบ้านกล้วย</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดปู่เจ้า" class="temple">
+      <h2>วัดปู่เจ้า </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ปู่เจ้า1.jpg" alt="วัดปู่เจ้า 1"></figure>
+        <figure class="tile"><img src="ปู่เจ้า2.jpg" alt="วัดปู่เจ้า 2"></figure>
+        <figure class="tile"><img src="ปู่เจ้า3.jpg" alt="วัดปู่เจ้า 3"></figure>
+        <figure class="tile"><img src="ปู่เจ้า4.jpg" alt="วัดปู่เจ้า 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนเก่าแก่ในย่านบ้านกร่าง</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>สงบ ร่มเงาไม้</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรครอบครัวร่มเย็น</p>
+        <h3>ของฝาก</h3><p>พระเครื่องบ้านกร่าง</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดปู่เจ้า ศรีประจันต์">ดูแผนที่ วัดปู่เจ้า</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดหนองเพียร" class="temple">
+      <h2>วัดหนองเพียร </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="หนองเพียร1.jpg" alt="วัดหนองเพียร 1"></figure>
+        <figure class="tile"><img src="หนองเพียร2.jpg" alt="วัดหนองเพียร 2"></figure>
+        <figure class="tile"><img src="หนองเพียร3.jpg" alt="วัดหนองเพียร 3"></figure>
+        <figure class="tile"><img src="หนองเพียร4.jpg" alt="วัดหนองเพียร 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดกลางชุมชนบางงาม จัดงานบุญสม่ำเสมอ</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลาใหญ่ รองรับงานชุมชน</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อประธาน ขอพรชีวิตราบรื่น</p>
+        <h3>ของฝาก</h3><p>น้ำมนต์/สายสิญจน์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดหนองเพียร ศรีประจันต์">ดูแผนที่ วัดหนองเพียร</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดโพธาราม" class="temple">
+      <h2>วัดโพธาราม (ตำบลบางงาม)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="โพธาราม-บางงาม1.jpg" alt="วัดโพธาราม ศรีประจันต์ 1"></figure>
+        <figure class="tile"><img src="โพธาราม-บางงาม2.jpg" alt="วัดโพธาราม ศรีประจันต์ 2"></figure>
+        <figure class="tile"><img src="โพธาราม-บางงาม3.jpg" alt="วัดโพธาราม ศรีประจันต์ 3"></figure>
+        <figure class="tile"><img src="โพธาราม-บางงาม4.jpg" alt="วัดโพธาราม ศรีประจันต์ 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ดอกไม้บูชา ชุดสังฆทาน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดเก่าแก่ในตำบลบางงาม</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ร่มเงาไม้เยอะ บรรยากาศเย็น</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อองค์ใหญ่ เสริมสิริมงคล</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดโพธาราม</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดโพธาราม ศรีประจันต์">ดูแผนที่ วัดโพธาราม</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดคลองชะโด" class="temple">
+      <h2>วัดคลองชะโด (ตำบลวังหว้า)</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="คลองชะโด1.jpg" alt="วัดคลองชะโด 1"></figure>
+        <figure class="tile"><img src="คลองชะโด2.jpg" alt="วัดคลองชะโด 2"></figure>
+        <figure class="tile"><img src="คลองชะโด3.jpg" alt="วัดคลองชะโด 3"></figure>
+        <figure class="tile"><img src="คลองชะโด4.jpg" alt="วัดคลองชะโด 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ดอกไม้บูชา</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดตำบลวังหว้า ใช้จัดงานบุญชุมชน</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบสงบ ติดลำคลอง</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ</p>
+        <h3>ของฝาก</h3><p>น้ำมนต์/สายสิญจน์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.00 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดคลองชะโด ศรีประจันต์">ดูแผนที่ วัดคลองชะโด</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดดงขี้เหล็ก" class="temple">
+      <h2>วัดดงขี้เหล็ก</h2>
+      <div class="gallery">
+        <figure class="tile"><img src="ดงขี้เหล็ก1.jpg" alt="วัดดงขี้เหล็ก 1"></figure>
+        <figure class="tile"><img src="ดงขี้เหล็ก2.jpg" alt="วัดดงขี้เหล็ก 2"></figure>
+        <figure class="tile"><img src="ดงขี้เหล็ก3.jpg" alt="วัดดงขี้เหล็ก 3"></figure>
+        <figure class="tile"><img src="ดงขี้เหล็ก4.jpg" alt="วัดดงขี้เหล็ก 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ธูปเทียน ผ้าไตร</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดชุมชนสงบ เหมาะทำบุญภาวนา</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>เงียบ ร่มไม้มาก</p>
+        <h3>มาไหว้พระอะไร</h3><p>หลวงพ่อใหญ่ ขอพรสุขสงบ</p>
+        <h3>ของฝาก</h3><p>สายสิญจน์ ผ้ายันต์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดดงขี้เหล็ก ศรีประจันต์">ดูแผนที่ วัดดงขี้เหล็ก</a>
+      </div>
+    </section>
+
+    <section id="srp-วัดจรรย์" class="temple">
+      <h2>วัดจรรย์ </h2>
+      <div class="gallery">
+        <figure class="tile"><img src="วัดจรรย์1.jpg" alt="วัดจรรย์ 1"></figure>
+        <figure class="tile"><img src="วัดจรรย์2.jpg" alt="วัดจรรย์ 2"></figure>
+        <figure class="tile"><img src="วัดจรรย์3.jpg" alt="วัดจรรย์ 3"></figure>
+        <figure class="tile"><img src="วัดจรรย์4.jpg" alt="วัดจรรย์ 4"></figure>
+      </div>
+      <div class="info">
+        <h3>ขายของอะไรบ้าง</h3><p>ชุดสังฆทาน ธูปเทียน</p>
+        <h3>เกี่ยวกับอะไร</h3><p>วัดใจกลางอำเภอศรีประจันต์</p>
+        <h3>จุดเด่นของวัดนี้</h3><p>ศาลาใหญ่ รองรับงานบุญชุมชน</p>
+        <h3>มาไหว้พระอะไร</h3><p>พระประธานปางสมาธิ</p>
+        <h3>ของฝาก</h3><p>เหรียญวัดจรรย์</p>
+        <h3>เวลาเปิดทำการ</h3><p class="muted">07.00–17.30 น.</p>
+        <a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=วัดจรรย์ ศรีประจันต์">ดูแผนที่ วัดจรรย์</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+
+const DATA = {
+  "ด่านช้าง": [
+    { id:"t-เขาพระศรี", name:"1) วัดเขาพระศรี (ต.อู่ทอง)" },
+    { id:"t-ทุ่งนาตาปิ่น", name:"2) วัดทุ่งนาตาปิ่น (ต.ด่านช้าง)" },
+    { id:"t-เขาดิน", name:"3) วัดเขาดิน (ต.เขาดิน)" },
+    { id:"t-โป่งคอม", name:"4) วัดโป่งคอม (ต.ด่านช้าง)" },
+    { id:"t-ด่านช้าง", name:"5) วัดด่านช้าง (ต.ด่านช้าง)" },
+    { id:"t-บรรหารแจ่มใส", name:"6) วัดบรรหารแจ่มใส (ต.ด่านช้าง)" },
+    { id:"t-ดอนประดู่", name:"7) วัดดอนประดู่ (ต.ด่านช้าง)" },
+    { id:"t-ชลประชาเทพนิมิตร", name:"8) วัดชลประชาเทพนิมิตร (ต.ด่านช้าง)" },
+    { id:"t-พุน้ำร้อน", name:"9) วัดพุน้ำร้อน (ต.ด่านช้าง)" },
+    { id:"t-วังคัน", name:"10) วัดวังคัน (ต.วังคัน)" }, 
+  ],
+
+  "เมือง": [
+        { id:"m-วัดอุทุมพราราม", name:"1) วัดอุทุมพราราม (วัดไผ่แขก) (ต.ดอนโพธิ์ทอง)" },
+    { id:"m-วัดป่าเลไลยก์วรวิหาร", name:"2) วัดป่าเลไลยก์วรวิหาร (ต.รั้วใหญ่)" },
+    { id:"m-วัดสารภี", name:"3) วัดสารภี (ต.รั้วใหญ่)" },
+    { id:"m-วัดวรจันทร์", name:"4) วัดวรจันทร์ (ต.โพธิ์พระยา)" },
+    { id:"m-วัดพระลอย", name:"5) วัดพระลอย (ต.รั้วใหญ่)" },
+    { id:"m-วัดพระรูป", name:"6) วัดพระรูป (ต.ท่าพี่เลี้ยง)" },
+    { id:"m-วัดพระศรีรัตนมหาธาตุ", name:"7) วัดพระศรีรัตนมหาธาตุ (ต.รั้วใหญ่)" },
+    { id:"m-วัดแค", name:"8) วัดแค (ต.รั้วใหญ่)" },
+    { id:"m-วัดพระนอน", name:"9) วัดพระนอน (ต.พิหารแดง)" },
+    { id:"m-วัดพิหารแดง", name:"10) วัดพิหารแดง (ต.พิหารแดง)" },
+
+  ],
+
+  "เดิมบางนางบวช": [
+    { id:"dmb-วัดเดิมบาง", name:"1) วัดเดิมบาง" },
+    { id:"dmb-วัดเขาดิน", name:"2) วัดเขาดิน (ต.เขาดิน)" },
+    { id:"dmb-วัดกาบบัว", name:"3) วัดกาบบัว (ต.เขาดิน)" },
+    { id:"dmb-วัดปากดงท่าศาล", name:"4) วัดปากดงท่าศาล (ต.เขาดิน)" },
+    { id:"dmb-วัดหนองแขม", name:"5) วัดหนองแขม (ต.เขาดิน)" },
+    { id:"dmb-วัดเขาพระ", name:"6) วัดเขาพระ (ต.เขาพระ)" },
+    { id:"dmb-วัดเขาน้อย", name:"7) วัดเขาน้อย (ต.เขาพระ)" },
+    { id:"dmb-วัดเขาใหญ่", name:"8) วัดเขาใหญ่ (ต.เขาพระ)" },
+    { id:"dmb-วัดท่าช้าง", name:"9) วัดท่าช้าง (ต.เขาพระ)" },
+    { id:"dmb-วัดวังกุลา", name:"10) วัดวังกุลา (ต.เขาพระ)" },
+  ],
+
+  "ศรีประจันต์": [
+    { id:"srp-วัดบ้านกร่าง", name:"1) วัดบ้านกร่าง (ต.บ้านกร่าง)" },
+    { id:"srp-วัดโพธิ์ศรีเจริญ", name:"2) วัดโพธิ์ศรีเจริญ (ต.บ้านกร่าง)" },
+    { id:"srp-วัดดอนบุบผาราม", name:"3) วัดดอนบุบผาราม (ต.บ้านกร่าง)" },
+    { id:"srp-วัดบ้านกล้วย", name:"4) วัดบ้านกล้วย (ต.บ้านกร่าง)" },
+    { id:"srp-วัดปู่เจ้า", name:"5) วัดปู่เจ้า (ต.บ้านกร่าง)" },
+    { id:"srp-วัดหนองเพียร", name:"6) วัดหนองเพียร (ต.บางงาม)" },
+    { id:"srp-วัดโพธาราม", name:"7) วัดโพธาราม (ต.บางงาม)" },
+    { id:"srp-วัดคลองชะโด", name:"8) วัดคลองชะโด (ต.วังหว้า)" },
+    { id:"srp-วัดดงขี้เหล็ก", name:"9) วัดดงขี้เหล็ก (ต.วังหว้า)" },
+    { id:"srp-วัดจรรย์", name:"10) วัดจรรย์ (ต.ศรีประจันต์)" },
+  ]
+};
+
+const chips = document.querySelectorAll('#districtChips button');
+const list = document.getElementById('templeList');
+const listTitle = document.getElementById('listTitle');
+const sections = document.querySelectorAll('.temple');
+const q = document.getElementById('q');
+
+let currentDistrict = 'เดิมบางนางบวช'; 
+
+function renderTempleList(district){
+  list.innerHTML = '';
+  (DATA[district]||[]).forEach((t, idx) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.textContent = t.name;
+    a.href = '#';
+    a.dataset.target = t.id;
+    if(idx===0) a.classList.add('active');
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      showSection(t.id);
+      list.querySelectorAll('a').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+      history.replaceState(null,'','#'+encodeURIComponent(a.textContent.replace(/^\d+\)\s*/,'')));
+    });
+    li.appendChild(a);
+    list.appendChild(li);
+  });
+  listTitle.textContent = 'วัดในอำเภอ' + (district==='เมือง'?'เมืองสุพรรณบุรี':district);
+  const first = (DATA[district]||[])[0];
+  if(first) showSection(first.id);
+}
+
+function showSection(id){
+  sections.forEach(s => s.classList.toggle('active', s.id === id));
+  window.scrollTo({top: document.querySelector('.detail').offsetTop - 8, behavior:'smooth'});
+}
+
+chips.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    chips.forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    currentDistrict = btn.dataset.district;
+    renderTempleList(currentDistrict);
+  });
+});
+
+q.addEventListener('input', ()=>{
+  const term = q.value.trim();
+  chips.forEach(btn=>{
+    const show = btn.textContent.includes(term);
+    btn.style.display = show ? '' : 'none';
+  });
+});
+
+renderTempleList(currentDistrict);
+
+const hash = decodeURIComponent(location.hash.replace('#',''));
+if(hash){
+  const all = Object.values(DATA).flat();
+  const found = all.find(t => t.name.includes(hash));
+  if(found){
+    const districtOfFound = Object.keys(DATA).find(d => DATA[d].some(x=>x.id===found.id));
+    if(districtOfFound && districtOfFound !== currentDistrict){
+      currentDistrict = districtOfFound;
+      chips.forEach(c=>{
+        c.classList.toggle('active', c.dataset.district===districtOfFound);
+      });
+      renderTempleList(currentDistrict);
+    }
+    showSection(found.id);
+    Array.from(list.querySelectorAll('a')).forEach(a=>{
+      a.classList.toggle('active', a.dataset.target===found.id);
+    });
+  }
+}
+
+</script>
+</body>
+</html>
